@@ -1,0 +1,112 @@
+#!python
+#==============================================================================
+#
+#   2-D plannar geometry
+#   Fuel Design #2 (*r2)
+#   Control points described in list_points
+#
+#   size_factor = 6  (reduce to refine mesh and vice versa)
+# 
+#
+#  Sideset 3 for outer surface
+#  Sideset 1 for x-axis
+#  Sideset 2 for y-axis
+#
+#  QUAD8 Element
+#
+#  output: 2d_r2.e
+#
+#  Rev 1.  02/08/2022
+#
+#==============================================================================
+f1_name = "2d_r2.e"
+output_path_1 ="..\\output\\"+f1_name
+auto_size_factor= 6
+#=============================================================================
+#
+#  functions
+
+def list2str(l):
+  s=""
+  for a in l:
+    s = s+" " + str(a)
+  return s
+
+def create_vertex(list_points):
+  for a in list_points:
+    cubit.cmd("create vertex " + str(a[0]) + '  ' + str(a[1]))
+
+def create_curves(list_curves):
+  for a in list_curves:
+    cubit.cmd("create  curve vertex " + str(a[0]) + '  ' + str(a[1]))
+
+def create_arcs(list_arcs):
+  for a in list_arcs:
+    cubit.cmd("create  curve arc vertex " + str(a[0]) + '  ' + str(a[1]) + '  radius  ' + str(a[2]) + '  normal 0 0 1 '  )
+
+def create_surfaces(list_surfaces):
+  for a in list_surfaces:
+    cubit.cmd("create surface curve " + list2str(a))
+
+
+list_points = [ (6.3, 0.0), (4.77, 1.53), (2.386, 2.386), (5.28, 0.0), (4.48, 1.13), (2.1036, 2.1036), (0, 0), (1.1, 0), (0.55, 0.55)]
+create_vertex(list_points)
+
+list_arcs =    [(1, 2, 1.53), (3, 2, 2.97), (4,5, 1.2), (6, 5, 3.32)]
+create_arcs(list_arcs)
+
+list_curves = [(1,4), (2,5), (3,6), (7,8), (7,9), (8,9), (8,4), (9,6)]
+create_curves(list_curves)
+
+list_curves_clad = [2, 4, 3, 1, 5, 7]
+list_curves_fuel  = [11, 4, 3, 10, 12]
+list_curves_displacer = [9, 10, 8 ]
+
+list_surfaces = [list_curves_clad, list_curves_fuel, list_curves_displacer]
+
+create_surfaces(list_surfaces)
+
+cubit.cmd('delete curve 6')
+cubit.cmd('merge curve all')
+
+cubit.cmd('surface 1 2 3 copy reflect -1 1 0')
+cubit.cmd('surface 1 2 3 4 5 6 copy reflect -1 0 0')
+cubit.cmd('surface 1 2 3 4 5 6 7 8 9 10 11 12 copy reflect 0 -1 0')
+cubit.cmd('merge curve all')
+
+cubit.cmd('delete surface 3 6 12 9 21 24 18 15 ')
+cubit.cmd('create surface curve 10 22 44 33 77 88 66 55 ')
+cubit.cmd('merge curve all')
+
+cubit.cmd('surface all size auto factor '+str(auto_size_factor))
+
+cubit.cmd('mesh surface all')
+
+list_vol_clad = [1, 4, 7, 10, 13, 16, 19, 22]
+list_vol_fuel = [2, 5, 8, 11, 14, 17, 20, 23]
+
+list_vol_displacer = [25]
+
+
+#create blocks
+
+cubit.cmd('block 1 surface' + list2str(list_vol_fuel))
+cubit.cmd('block 2 surface' + list2str(list_vol_clad))
+cubit.cmd('block 3 surface' + list2str(list_vol_displacer))
+
+cubit.cmd('volume all scale 0.001')
+cubit.cmd('block all element type QUAD8')
+
+#create sidesets
+
+
+outer_surface = [ 1, 2, 17, 18, 42, 43, 28, 29,  75, 76, 83, 84,  64, 65, 50, 51]
+
+x_axis = [5, 11,  30, 34]
+y_axis = [63, 68, 23, 19]
+
+cubit.cmd('sideset 3 add curve' + list2str(outer_surface))
+cubit.cmd('sideset 1 add curve' + list2str(x_axis))
+cubit.cmd('sideset 2 add curve' + list2str(y_axis))
+
+cubit.cmd('export genesis"' + output_path_1 + '" dimension 2 overwrite')
